@@ -23,7 +23,7 @@ public:
 	CREATE_FUNC(PlayLayer);
     
     virtual bool init() override;
-    virtual void update(float dt) override;
+    virtual void update(float dt);
 
 	//touch event
 	virtual void registerWithTouchDispatcher(void);
@@ -36,6 +36,14 @@ public:
 
 	CCPoint PositionOfItem(int row, int col);
 	Node* NodeOfPoint(CCPoint* Point);
+
+	//set
+	bool SetSourcePos(Node* touch_Node);
+	bool SetDesPos(Node* touch_Node);
+	bool SetWallPos(Node* touch_Node);
+	bool DeleteWall(Node* touch_Node);
+
+	void AStarFindPath();
 
 private:
 	//matrix

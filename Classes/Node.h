@@ -5,13 +5,14 @@
 
 USING_NS_CC;
 
-enum NODE_INFO
+enum NODE_TYPE
 {
 	NODE_NORMAL = 0,
 	NODE_SOURCE,
 	NODE_DES,
 	NODE_WALL,
 };
+
 class Node:public CCSprite
 {
 public:
