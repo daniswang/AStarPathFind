@@ -1,7 +1,7 @@
 #include "Node.h"
 static const char * nodestr = "blue.png";
 
-Node::Node():m_row(0),m_col(0)
+Node::Node():m_row(0),m_col(0),m_Info(0)
 {
 }
 
@@ -33,4 +33,11 @@ float Node::GetContentWidth()
         itemWidth = sprite->getContentSize().width;
     }
     return itemWidth;
+}
+
+bool Node::IsNodeInfoNormal()
+{
+	if(m_Info == NODE_NORMAL)
+		return true;
+	return false;
 }

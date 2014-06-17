@@ -5,6 +5,13 @@
 
 USING_NS_CC;
 
+enum NODE_INFO
+{
+	NODE_NORMAL = 0,
+	NODE_SOURCE,
+	NODE_DES,
+	NODE_WALL,
+};
 class Node:public CCSprite
 {
 public:
@@ -13,9 +20,13 @@ public:
 	
 	static Node* Create(int row, int col);
 	static float GetContentWidth();
+	bool IsNodeInfoNormal();
 private:
-	int m_row;
-	int m_col;
+	CC_SYNTHESIZE(int, m_row, Row);
+	CC_SYNTHESIZE(int, m_col, Col);
+
+	//
+	CC_SYNTHESIZE(int, m_Info, Info);
 
 };
 #endif

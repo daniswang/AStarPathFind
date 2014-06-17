@@ -5,7 +5,14 @@
 #include "Node.h"
 
 USING_NS_CC;
-
+enum FIND_STATE
+{
+	FIND_NORMAL = 0,
+	FIND_SOURCE,
+	FIND_DES,
+	FIND_WALL,
+	FIND_RUNNING,
+};
 class PlayLayer : public CCLayer
 {
 public:
@@ -26,7 +33,9 @@ public:
 	virtual void ccTouchCancelled(CCTouch *touch, CCEvent *unused);
 
 	void InitMatrix();
+
 	CCPoint PositionOfItem(int row, int col);
+	Node* NodeOfPoint(CCPoint* Point);
 
 private:
 	//matrix
@@ -40,6 +49,9 @@ private:
 
 	//is touchable
 	CC_SYNTHESIZE(bool, m_IsTouchAble, IsTouchAble);
+
+	//state
+	CC_SYNTHESIZE(int, m_State, State);
 
 };
 #endif

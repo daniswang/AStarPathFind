@@ -19,7 +19,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     pDirector->setOpenGLView(pEGLView);
 	
 	    //FIXED_WIDTH
-    pEGLView->setDesignResolutionSize(320, 480 , ResolutionPolicy::kResolutionShowAll);
+	pEGLView->setDesignResolutionSize(320, 480 , ResolutionPolicy::kResolutionShowAll);
     std::vector<std::string> searchPath;
     searchPath.push_back("image");
     CCFileUtils::sharedFileUtils()->setSearchPaths(searchPath);
