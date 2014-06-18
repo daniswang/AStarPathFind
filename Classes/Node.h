@@ -23,11 +23,18 @@ public:
 	static float GetContentWidth();
 	bool IsNodeInfoNormal();
 private:
+	//index
 	CC_SYNTHESIZE(int, m_row, Row);
 	CC_SYNTHESIZE(int, m_col, Col);
 
+	//nodetype
+	CC_SYNTHESIZE(int, m_nodeType, NodeType);
+
 	//
-	CC_SYNTHESIZE(int, m_Info, Info);
+	CC_SYNTHESIZE(int, m_G, G);
+	CC_SYNTHESIZE(int, m_H, H);
+
+	CC_SYNTHESIZE(Node*, m_fatherNode, PFatherNode);
 
 };
 #endif

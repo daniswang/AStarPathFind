@@ -5,6 +5,7 @@
 #define MAX_HEIGTH (9);
 #define NODE_GAP (0.5)
 
+//nodetyp source
 static const char * nodeTypeStr[4] = 
 {
 	"nouse",
@@ -13,7 +14,20 @@ static const char * nodeTypeStr[4] =
 	"nodetype3.png",
 };
 
-PlayLayer::PlayLayer():m_width(0),m_height(0),m_IsTouchAble(true),m_State(0)
+//方向 权值对照
+static const Direction_Int DirWayRight[DIR_ALL] =
+{
+	10, 
+	10, 
+	10, 
+	10, 
+	14, 
+	14, 
+	14, 
+	14
+};
+
+PlayLayer::PlayLayer():m_width(0),m_height(0),m_IsTouchAble(true),m_State(FIND_NORMAL),m_hasBegan(-1),m_SourceNode(NULL),m_DesNode(NULL)
 {
 }
 
@@ -44,9 +58,9 @@ bool PlayLayer::init()
 	addChild(background);
 
 	//init spriteSheet;
-	//SpriteFrameCache::getInstance()->addSpriteFramesWithFile("sushi.plist");
-    //spriteSheet = SpriteBatchNode::create("sushi.pvr.ccz");
-    //addChild(spriteSheet);
+	CCSpriteFrameCache::sharedSpriteFrameCache()->addSpriteFramesWithFile("AStarPathFind.plist");
+    spriteSheet = CCSpriteBatchNode::create("AStarPathFind.pvr.ccz");
+    addChild(spriteSheet);
 
 	m_width = MAX_WIDETH;
 	m_height = MAX_HEIGTH;
@@ -85,11 +99,18 @@ void PlayLayer::InitMatrix()
 void PlayLayer::update(float dt)
 {
 	 //CCLOG("baibai");
+	if(m_SourceNode && m_DesNode && m_State != FIND_END && m_State != FIND_PRINT)
+		m_State = FIND_RUNNING;
+
 	if(m_State == FIND_RUNNING)
 	{//begin A Star
-		AStarFindPath();
+		int findResult = AStarFindPath();
 	}
 	
+	if(m_State == FIND_END)
+	{
+		PrintWay();
+	}
 }
 
 /************** touch event************************/
@@ -107,10 +128,11 @@ bool PlayLayer::ccTouchBegan(CCTouch *touch, CCEvent *unused)
 		Node* touchedNode = NodeOfPoint(&location);
 		if(!touchedNode)
 			return false;
-
-		//bool scuess = SetSourcePos(touchedNode);
-		//bool sucess =SetDesPos(touchedNode);
-		bool sucess = SetWallPos(touchedNode);
+		if(!m_SourceNode)
+			bool scuess = SetSourcePos(touchedNode);
+		if(m_SourceNode && !m_DesNode)
+			bool sucess =SetDesPos(touchedNode);
+		//bool sucess = SetWallPos(touchedNode);
 	}
 	return m_IsTouchAble;
 }
@@ -170,6 +192,14 @@ Node* PlayLayer::NodeOfPoint(CCPoint* point)
 	return NULL;
 }
 
+Node* PlayLayer::NodeOfIndex(int row, int col)
+{
+	if(row >= m_height || col >= m_width || row < 0 || col < 0)
+		return NULL;
+
+	return *(m_matrix + row * m_width + col);
+}
+
 /*************set pos*******************/
 //set source
 bool PlayLayer::SetSourcePos(Node* touch_Node)
@@ -183,10 +213,10 @@ bool PlayLayer::SetSourcePos(Node* touch_Node)
 	{
 		for(int l = 0;l < m_width;l ++)
 		{
-			if((*(m_matrix + i * m_width + l))->getInfo() == NODE_SOURCE)
+			if((*(m_matrix + i * m_width + l))->getNodeType() == NODE_SOURCE)
 			{
 				(*(m_matrix + i * m_width + l))->removeAllChildren();
-				(*(m_matrix + i * m_width + l))->setInfo(NODE_NORMAL);
+				(*(m_matrix + i * m_width + l))->setNodeType(NODE_NORMAL);
 				searched = true;
 				break;
 			}
@@ -195,13 +225,14 @@ bool PlayLayer::SetSourcePos(Node* touch_Node)
 		}
 	}
 	//add new
-	touch_Node->setInfo(NODE_SOURCE);
+	touch_Node->setNodeType(NODE_SOURCE);
 
 	CCSprite* addNode = CCSprite::create(nodeTypeStr[NODE_SOURCE]);
 	CCPoint addlocation = PositionOfItem(touch_Node->getRow(), touch_Node->getCol());
 	addNode->setPosition(CCPoint(touch_Node->getContentSize().width/2 - 0.5, touch_Node->getContentSize().height/2 + 0.5));
 	touch_Node->addChild(addNode);
 
+	m_SourceNode = touch_Node;
 	return true;
 }
 
@@ -217,10 +248,10 @@ bool PlayLayer::SetDesPos(Node* touch_Node)
 	{
 		for(int l = 0;l < m_width;l ++)
 		{
-			if((*(m_matrix + i * m_width + l))->getInfo() == NODE_DES)
+			if((*(m_matrix + i * m_width + l))->getNodeType() == NODE_DES)
 			{
 				(*(m_matrix + i * m_width + l))->removeAllChildren();
-				(*(m_matrix + i * m_width + l))->setInfo(NODE_NORMAL);
+				(*(m_matrix + i * m_width + l))->setNodeType(NODE_NORMAL);
 				searched = true;
 				break;
 			}
@@ -230,13 +261,14 @@ bool PlayLayer::SetDesPos(Node* touch_Node)
 	}
 
 	//add new
-	touch_Node->setInfo(NODE_DES);
+	touch_Node->setNodeType(NODE_DES);
 
 	CCSprite* addNode = CCSprite::create(nodeTypeStr[NODE_DES]);
 	CCPoint addlocation = PositionOfItem(touch_Node->getRow(), touch_Node->getCol());
 	addNode->setPosition(CCPoint(touch_Node->getContentSize().width/2 - 0.5, touch_Node->getContentSize().height/2 + 0.5));
 	touch_Node->addChild(addNode);
 
+	m_DesNode = touch_Node;
 	return true;
 }
 
@@ -244,7 +276,7 @@ bool PlayLayer::SetDesPos(Node* touch_Node)
 bool PlayLayer::SetWallPos(Node* touch_Node)
 {
 	// 重复点击取消
-	if(touch_Node->getInfo() == NODE_WALL)
+	if(touch_Node->getNodeType() == NODE_WALL)
 	{
 		DeleteWall(touch_Node);
 		return true;
@@ -254,12 +286,12 @@ bool PlayLayer::SetWallPos(Node* touch_Node)
 		return false;
 
 	//add new
-	if(touch_Node->getInfo() == NODE_NORMAL)
+	if(touch_Node->getNodeType() == NODE_NORMAL)
 	{
-		touch_Node->setInfo(NODE_WALL);
+		touch_Node->setNodeType(NODE_WALL);
 	}
 	CCSprite* addNode = CCSprite::create(nodeTypeStr[NODE_WALL]);
-	CCPoint addlocation = PositionOfItem(touch_Node->getRow(), touch_Node->getCol());
+	//CCPoint addlocation = PositionOfItem(touch_Node->getRow(), touch_Node->getCol());
 	addNode->setPosition(CCPoint(touch_Node->getContentSize().width/2 - 0.5, touch_Node->getContentSize().height/2 + 0.5));
 	touch_Node->addChild(addNode);
 
@@ -269,17 +301,245 @@ bool PlayLayer::SetWallPos(Node* touch_Node)
 //delete wall
 bool PlayLayer::DeleteWall(Node* touch_Node)
 {
-	if(touch_Node->getInfo() != NODE_WALL)
+	if(touch_Node->getNodeType() != NODE_WALL)
 		return false;
 
 	touch_Node->removeAllChildren();
-	touch_Node->setInfo(NODE_NORMAL);
+	touch_Node->setNodeType(NODE_NORMAL);
 
 	return true;
 }
 //set pos end
 
 //AStarFind
-void PlayLayer::AStarFindPath()
+int PlayLayer::AStarFindPath()
 {
+	if(!m_SourceNode || !m_DesNode)
+	{
+		setState(FIND_END);
+		return RESULT_ERROR;
+	}
+
+	//first time
+	if(getHasBegan() < 0)
+	{
+		Add2OpenList(m_SourceNode);
+		setHasBegan(FIND_RUNNING);
+	}
+
+	//find min F
+	Node* min_Node = FindMin_F_OpenList();
+	if(!min_Node)
+	{//can not find
+		setState(FIND_END);
+		return RESULT_NOT;
+	}
+
+	//add closelist
+	if(Add2CloseList(min_Node) > 0)
+	{// find des
+		setState(FIND_END);
+		return RESULT_GET;
+	}
+	//add neigthbor
+	AddNeighbor2Openlist(min_Node);
+
+
+}
+
+void PlayLayer::Add2OpenList(Node* p_node)
+{
+	m_openList.push_back(p_node);
+	CCSpriteFrame *frame;
+	//CCSprite* p_find = CCSprite::create("green.png");
+	frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(stepRes[1]);
+	p_node->setDisplayFrame(frame);
+	//p_node->setPosition(CCPoint(p_node->getContentSize().width/2 - 0.5, p_node->getContentSize().height/2 + 0.5));
+	//p_node->addChild(p_find);
+}
+
+void PlayLayer::DeleteFromOpen(Node* pNode)
+{
+	if(!pNode)
+		return;
+	m_openList.remove(pNode);
+}
+
+void PlayLayer::AddNeighbor2Openlist(Node* p_node)
+{
+	if(!p_node)
+		return;
+
+	//right
+	Node* neighborRight = NodeOfIndex(p_node->getRow(), p_node->getCol() + 1);
+	if(CheckAddNeighborNode(neighborRight, p_node, DIR_RIGHT))
+	{
+		ComputeNodeGH(neighborRight, p_node, DIR_RIGHT);
+		Add2OpenList(neighborRight);
+	}
+	//left
+	Node* neighborLeft = NodeOfIndex(p_node->getRow(), p_node->getCol() - 1);
+	if(CheckAddNeighborNode(neighborLeft, p_node, DIR_LEFT))
+	{
+		ComputeNodeGH(neighborLeft, p_node, DIR_LEFT);
+		Add2OpenList(neighborLeft);
+	}
+	//up
+	Node* neighborUp = NodeOfIndex(p_node->getRow() + 1, p_node->getCol());
+	if(CheckAddNeighborNode(neighborUp, p_node, DIR_UP))
+	{
+		ComputeNodeGH(neighborUp, p_node, DIR_UP);
+		Add2OpenList(neighborUp);
+	}
+	//down
+	Node* neighborDown = NodeOfIndex(p_node->getRow() - 1, p_node->getCol() + 1);
+	if(CheckAddNeighborNode(neighborDown, p_node, DIR_DOWN))
+	{
+		ComputeNodeGH(neighborDown, p_node, DIR_DOWN);
+		Add2OpenList(neighborDown);
+	}
+
+	right up
+	Node* neighborRightUp = NodeOfIndex(p_node->getRow() + 1, p_node->getCol() + 1);
+	if(CheckAddNeighborNode(neighborRightUp, p_node, DIR_RIGHT_UP))
+	{
+		ComputeNodeGH(neighborRightUp, p_node, DIR_RIGHT_UP);
+		Add2OpenList(neighborRightUp);
+	}
+	//left up
+	Node* neighborLeftUp = NodeOfIndex(p_node->getRow() + 1, p_node->getCol() - 1);
+	if(CheckAddNeighborNode(neighborLeftUp, p_node, DIR_LEFT_UP))
+	{
+		ComputeNodeGH(neighborLeftUp, p_node, DIR_LEFT_UP);
+		Add2OpenList(neighborLeftUp);
+	}
+	//right down
+	Node* neighborRightDown = NodeOfIndex(p_node->getRow() - 1, p_node->getCol() + 1);
+	if(CheckAddNeighborNode(neighborRightDown, p_node, DIR_RIGHT_DOWN))
+	{
+		ComputeNodeGH(neighborRightDown, p_node, DIR_RIGHT_DOWN);
+		Add2OpenList(neighborRightDown);
+	}
+	//left down
+	Node* neighborLeftDown = NodeOfIndex(p_node->getRow() - 1, p_node->getCol() - 1);
+	if(CheckAddNeighborNode(neighborLeftDown, p_node, DIR_LEFT_DOWN))
+	{
+		ComputeNodeGH(neighborLeftDown, p_node, DIR_LEFT_DOWN);
+		Add2OpenList(neighborLeftDown);
+	}
+
+}
+
+void PlayLayer::ComputeNodeGH(Node* pNode, Node* pFather, Direction_Int dir)
+{
+	if(!pNode || !pFather)
+		return;
+
+	pNode->setPFatherNode(pFather);
+
+	pNode->setG(pFather->getG() + DirWayRight[dir]);
+	
+	int prow = pNode->getRow() - m_DesNode->getRow() > 0 ? (pNode->getRow() - m_DesNode->getRow()) :  (m_DesNode->getRow() - pNode->getRow());
+	int pcol = pNode->getCol() - m_DesNode->getCol() > 0 ? (pNode->getCol() - m_DesNode->getCol()) :  (m_DesNode->getCol() - pNode->getCol());
+
+	pNode->setH(prow + pcol);
+}
+
+bool PlayLayer::CheckAddNeighborNode(Node* neighbor_Node, Node* father_Node, Direction_Int dir)
+{
+	if(!neighbor_Node || !father_Node)
+		return false;
+
+	//check wall 
+	if(neighbor_Node->getNodeType() == NODE_WALL)
+		return false;
+
+	//check close list
+	Node_List::iterator its = m_closeList.begin();
+	for(;its != m_closeList.end();its ++)
+	{
+		if(*its == neighbor_Node)
+			return false;
+	}
+	//check open list
+	Node_List::iterator it = m_openList.begin();
+	for(;it != m_openList.end();it ++)
+	{
+		if(*it == neighbor_Node)
+		{
+			if((*it)->getG() > father_Node->getG() + DirWayRight[dir])
+			{
+				(*it)->setPFatherNode(father_Node);
+				(*it)->setG(father_Node->getG() + DirWayRight[dir]);
+			}
+			return false;
+		}
+	}
+
+	return true;
+}
+
+Node* PlayLayer::FindMin_F_OpenList()
+{
+	if(m_openList.empty())
+		return NULL;
+
+	int F = 0;
+	Node* minNode = NULL;
+	std::list<Node*>::iterator it = m_openList.begin();
+	for(;it != m_openList.end();it ++)
+	{
+		if(F == 0)
+		{
+			F = (*it)->getG() + (*it)->getH();
+			minNode = (*it);
+		}
+		else
+		{
+			if(F > ((*it)->getG() + (*it)->getH()))
+			{
+				F = ((*it)->getG() + (*it)->getH());
+				minNode = *it;
+			}
+		}
+	}
+
+	return minNode;
+}
+
+int PlayLayer::Add2CloseList(Node* p_node)
+{
+	if(!p_node)
+		return -1;
+
+	m_closeList.push_back(p_node);
+	//delet from open
+	DeleteFromOpen(p_node);
+
+	if(p_node == m_DesNode)
+		return 1;
+
+	//CCSprite* way_Node = CCSprite::create("green.png");
+	//p_node->setPosition(CCPoint(p_node->getContentSize().width/2 - 0.5, p_node->getContentSize().height/2 + 0.5));
+	//p_node->addChild(way_Node);
+	CCSpriteFrame *frame;
+	frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(stepRes[2]);
+	p_node->setDisplayFrame(frame);
+
+	return 0;
+}
+
+void PlayLayer::PrintWay()
+{
+	Node* findnode = m_DesNode;
+	for(;findnode != NULL;)
+	{
+		findnode = findnode->getPFatherNode();
+		if(!findnode)
+			break;
+		CCSpriteFrame *frame;
+		frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(stepRes[3]);
+		findnode->setDisplayFrame(frame);
+	}
+	setState(FIND_PRINT);
 }
