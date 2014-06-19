@@ -37,6 +37,7 @@ const char* stepRes[]=
 static const char* setWallButton = "setwall.png";
 static const char* restartButton = "restart.png";
 static const char* stepButton = "step.png";
+static const char* runButton = "run.png";
 
 //方向 权值对照
 static const Direction_Int DirWayRight[DIR_ALL] =
@@ -135,24 +136,32 @@ void PlayLayer::InitButton()
 	CCSprite* setWallB = CCSprite::createWithSpriteFrameName(setWallButton);
 	setWallB->setPosition(CCPoint(40, 460));
 	addChild(setWallB);
+	m_SetWallButton = setWallB;
 
 	CCSprite* restartB = CCSprite::createWithSpriteFrameName(restartButton);
-	restartB->setPosition(CCPoint(170, 460));
+	restartB->setPosition(CCPoint(100, 460));
 	addChild(restartB);
+	m_RestartButton = restartB;
 
 	CCSprite* stepB = CCSprite::createWithSpriteFrameName(stepButton);
-	stepB->setPosition(CCPoint(295, 460));
+	stepB->setPosition(CCPoint(190, 460));
 	addChild(stepB);
+	m_StepButton= stepB;
+
+	CCSprite* runB = CCSprite::createWithSpriteFrameName(runButton);
+	runB->setPosition(CCPoint(250, 460));
+	addChild(runB);
+	m_RunButton= runB;
 }
 
 void PlayLayer::update(float dt)
 {
-	if(m_SourceNode && m_DesNode && m_State != FIND_END && m_State != FIND_PRINT)
-		m_State = FIND_STEPBYSTEP;
+	//if(m_SourceNode && m_DesNode && m_State != FIND_END && m_State != FIND_PRINT)
+		//m_State = FIND_STEPBYSTEP;
 
-	//if(m_State == FIND_RUNNING)
+	if(m_State == FIND_RUNNING)
 	{//begin A Star
-	//	int findResult = AStarFindPath();
+		int findResult = AStarFindPath();
 	}
 	
 	if(m_State == FIND_END)
@@ -178,18 +187,69 @@ bool PlayLayer::ccTouchBegan(CCTouch *touch, CCEvent *unused)
 	{
 		auto location = touch->getLocation();
 		Node* touchedNode = NodeOfPoint(&location);
-		if(!touchedNode)
-			return false;
-		if(!m_SourceNode)
-			bool scuess = SetSourcePos(touchedNode);
-		if(m_SourceNode && !m_DesNode)
-			bool sucess =SetDesPos(touchedNode);
-		//bool sucess = SetWallPos(touchedNode);
+		if(touchedNode)
+		{
+			if(!m_SourceNode)
+				bool scuess = SetSourcePos(touchedNode);
+			if(m_SourceNode && !m_DesNode)
+				bool sucess =SetDesPos(touchedNode);
+			if(getState() == FIND_REDAY && m_SourceNode && m_DesNode)
+				bool sucess = SetWallPos(touchedNode);
+		}
+
+		CCSprite* ButtonSprite = ButtonOfPoint(&location);
+		if(ButtonSprite)
+		{
+			if(ButtonSprite == m_SetWallButton)
+			{
+				if(m_State != FIND_STEPBYSTEP && m_State != FIND_RUNNING)
+					setState(FIND_REDAY);
+
+			}
+			if(ButtonSprite == m_RestartButton)
+			{//clear
+				setState(FIND_NOT_START);
+				Node_List::iterator it = m_openList.begin();
+				for(;it != m_openList.end();it ++)
+				{
+					CCSpriteFrame *frame;
+					frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(stepRes[STEP_BASE]);
+					(*it)->setDisplayFrame(frame);
+					(*it)->removeAllChildren();
+				}
+				m_openList.clear();
+
+				Node_List::iterator its = m_closeList.begin();
+				for(;its != m_closeList.end();its ++)
+				{
+					CCSpriteFrame *frame;
+					frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(stepRes[STEP_BASE]);
+					(*its)->setDisplayFrame(frame);
+					(*its)->removeAllChildren();
+				}
+				m_closeList.clear();
+
+				m_FoundPath.clear();
+
+				m_SourceNode = NULL;
+				m_DesNode = NULL;
+				setHasBegan(FIND_NOT_START);
+			}
+			if(ButtonSprite == m_StepButton)
+			{
+				setState(FIND_STEPBYSTEP);
+			}
+			if(ButtonSprite == m_RunButton)
+			{
+				setState(FIND_RUNNING);
+			}
+		}
 	}
 	if(m_State == FIND_STEPBYSTEP)
 	{
 		AStarFindPath();
 	}
+	
 	return m_IsTouchAble;
 }
 
@@ -456,7 +516,7 @@ bool PlayLayer::AddNeighbor2Openlist(Node* p_node)
 		desInOpen = Add2OpenList(neighborUp, DIR_UP);
 	}
 	//down
-	Node* neighborDown = NodeOfIndex(p_node->getRow() - 1, p_node->getCol() + 1);
+	Node* neighborDown = NodeOfIndex(p_node->getRow() - 1, p_node->getCol());
 	if(CheckAddNeighborNode(neighborDown, p_node, DIR_DOWN))
 	{
 		ComputeNodeGH(neighborDown, p_node, DIR_DOWN);
@@ -622,31 +682,40 @@ void PlayLayer::DisPlayFindPathStep(const char* resouceStr, Node* stepNode, Dire
 {
 	//方向转换
 	int desdir = 0;
+	std::string dirstr;
 	switch(dir)
 	{
 	case DIR_RIGHT:
-		desdir = DIR_LEFT;
+		//desdir = DIR_LEFT;
+		dirstr = "arrow2.png";
 		break;
 	case DIR_LEFT:
-		desdir = DIR_RIGHT;
+		//desdir = DIR_RIGHT;
+		dirstr = "arrow1.png";
 		break;
 	case DIR_UP:
-		desdir = DIR_DOWN;
+		//desdir = DIR_DOWN;
+		dirstr = "arrow4.png";
 		break;
 	case DIR_DOWN:
-		desdir = DIR_UP;
+		//desdir = DIR_UP;
+		dirstr = "arrow3.png";
 		break;
 	case DIR_RIGHT_UP:
-		desdir = DIR_LEFT_DOWN;
+		//desdir = DIR_LEFT_DOWN;
+		dirstr = "arrow8.png";
 		break;
 	case DIR_LEFT_UP:
-		desdir = DIR_RIGHT_DOWN;
+		//desdir = DIR_RIGHT_DOWN;
+		dirstr = "arrow7.png";
 		break;
 	case DIR_RIGHT_DOWN:
-		desdir = DIR_LEFT_UP;
+		//desdir = DIR_LEFT_UP;
+		dirstr = "arrow6.png";
 		break;
 	case DIR_LEFT_DOWN:
-		desdir = DIR_RIGHT_UP;
+		//desdir = DIR_RIGHT_UP;
+		dirstr = "arrow5.png";
 		break;
 	default:
 		break;
@@ -675,7 +744,7 @@ void PlayLayer::DisPlayFindPathStep(const char* resouceStr, Node* stepNode, Dire
 		plableF->setPosition(CCPoint(9, 7));
 		stepNode->addChild(plableF);
 
-		CCSprite* dirSpirit = CCSprite::createWithSpriteFrameName(dirResource[desdir]);
+		CCSprite* dirSpirit = CCSprite::createWithSpriteFrameName(dirstr.c_str());
 		dirSpirit->setPosition(CCPoint(stepNode->getContentSize().width/2, stepNode->getContentSize().height/2));
 		stepNode->addChild(dirSpirit);
 	}
@@ -727,23 +796,32 @@ CCSprite* PlayLayer::ButtonOfPoint(CCPoint* point)
 
 	CCRect rect = CCRect(0, 0, 0, 0);
 
+	rect.origin.x = m_SetWallButton->getPositionX() - (m_SetWallButton->getContentSize().width / 2);
+	rect.origin.y = m_SetWallButton->getPositionY() - (m_SetWallButton->getContentSize().height / 2);
+	rect.size = m_SetWallButton->getContentSize();
+	if(rect.containsPoint(*point))
+		return m_SetWallButton;
+
+	rect.origin.x = m_RestartButton->getPositionX() - (m_RestartButton->getContentSize().width / 2);
+	rect.origin.y = m_RestartButton->getPositionY() - (m_RestartButton->getContentSize().height / 2);
+	rect.size = m_RestartButton->getContentSize();
+	if(rect.containsPoint(*point))
+		return m_RestartButton;
+
+	rect.origin.x = m_StepButton->getPositionX() - (m_StepButton->getContentSize().width / 2);
+	rect.origin.y = m_StepButton->getPositionY() - (m_StepButton->getContentSize().height / 2);
+	rect.size = m_StepButton->getContentSize();
+	if(rect.containsPoint(*point))
+		return m_StepButton;
+					
+	rect.origin.x = m_RunButton->getPositionX() - (m_RunButton->getContentSize().width / 2);
+	rect.origin.y = m_RunButton->getPositionY() - (m_RunButton->getContentSize().height / 2);
+	rect.size = m_RunButton->getContentSize();
+	if(rect.containsPoint(*point))
+		return m_RunButton;
+
+	return NULL;
 	
-	for(int i = 0;i < m_height;i ++)
-	{
-		for(int l = 0;l < m_width;l ++)
-		{
-			Node* node = NULL;
-			node = *(m_matrix+ i * m_width + l);
-			if(node)
-			{
-				rect.origin.x = node->getPositionX() - (node->getContentSize().width / 2);
-				rect.origin.y = node->getPositionY() - (node->getContentSize().height / 2);
-				rect.size = node->getContentSize();
-				if(rect.containsPoint(*point))
-					return node;
-			}
-		}
-	}
 
 	return NULL;
 }

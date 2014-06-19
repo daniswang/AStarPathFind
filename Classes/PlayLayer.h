@@ -9,9 +9,6 @@ USING_NS_CC;
 
 extern const char* stepRes[];
 
-typedef std::list<Node*> Node_List;
-typedef int Direction_Int;
-
 //finding state
 enum FIND_STATE
 {
@@ -54,6 +51,9 @@ enum STEP_TYPE
 	STEP_PATH,
 };
 
+typedef std::list<Node*> Node_List;
+typedef int Direction_Int;
+typedef std::vector<Node*> FoundPath_Vector;
 class PlayLayer : public CCLayer
 {
 public:
@@ -109,9 +109,14 @@ private:
 	//closelist
 	Node_List m_closeList;
 	//waypath
-	std::vector<Node*> m_FoundPath;
+	FoundPath_Vector m_FoundPath;
 	int m_FoundPathSize;
 
+	//button
+	CCSprite* m_SetWallButton;
+	CCSprite* m_RestartButton;
+	CCSprite* m_StepButton;
+	CCSprite* m_RunButton;
 	//source
 	Node* m_SourceNode;
 	//des
