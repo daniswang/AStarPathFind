@@ -19,8 +19,7 @@ Node* Node::Create(int row, int col)
 	node->m_row = row;
 	node->m_col = col;
 
-	node->initWithSpriteFrameName(stepRes[0]);
-	//node->initWithFile("step1.png");
+	node->initWithSpriteFrameName(stepRes[STEP_BASE]);
 	node->autorelease();
 
 	return node;

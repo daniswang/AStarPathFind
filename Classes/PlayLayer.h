@@ -7,27 +7,23 @@
 
 USING_NS_CC;
 
-//
-static const char* stepRes[4] =
-{
-	"step1.png",
-	"step2.png",
-	"step3.png",
-	"step4.png",
-};
+extern const char* stepRes[];
 
 typedef std::list<Node*> Node_List;
 typedef int Direction_Int;
-//×´Ì¬
+
+//finding state
 enum FIND_STATE
 {
-	FIND_NORMAL = -1,
+	FIND_NOT_START = -2,
+	FIND_REDAY = -1,
 	FIND_RUNNING = 0,
+	FIND_STEPBYSTEP,
 	FIND_END,
 	FIND_PRINT,
 };
 
-//
+//result
 enum FIND_RESULT
 {
 	RESULT_ERROR = -1,
@@ -35,7 +31,7 @@ enum FIND_RESULT
 	RESULT_NOT = 1,
 };
 
-//·½Ïò
+//direction
 enum DIRECTION
 {
 	DIR_RIGHT,
@@ -47,6 +43,15 @@ enum DIRECTION
 	DIR_RIGHT_DOWN,
 	DIR_LEFT_DOWN,
 	DIR_ALL,
+};
+
+//
+enum STEP_TYPE
+{
+	STEP_BASE,
+	STEP_OPEN,
+	STEP_CLOSE,
+	STEP_PATH,
 };
 
 class PlayLayer : public CCLayer
@@ -70,6 +75,9 @@ public:
 
 	void InitMatrix();
 
+	void InitButton();
+	CCSprite * ButtonOfPoint(CCPoint* point);
+
 	CCPoint PositionOfItem(int row, int col);
 	Node* NodeOfPoint(CCPoint* Point);
 	Node* NodeOfIndex(int row, int col);
@@ -82,20 +90,27 @@ public:
 
 	//A Star
 	int AStarFindPath();
-	void Add2OpenList(Node* p_node);
-	void AddNeighbor2Openlist(Node* p_node);
+	bool Add2OpenList(Node* p_node, Direction_Int dir);
+	bool AddNeighbor2Openlist(Node* p_node);
 	bool CheckAddNeighborNode(Node* neighbor_Node, Node* father_Node, Direction_Int dir);
 	int Add2CloseList(Node* p_node);
 	Node* FindMin_F_OpenList();
 	void DeleteFromOpen(Node* pNode);
 	void ComputeNodeGH(Node* pNode, Node* pFather, Direction_Int dir);
-	void PrintWay();
+	void InitWay();
+	void DisPlayFindPathStep(const char* resouceStr, Node* stepNode, Direction_Int dir);
+	void DisPlayFindPathStep(const char* resouceStr, Node* stepNode);
+	void BeginStep();
+	void ReStartInit();
 private:
 	CCSpriteBatchNode *spriteSheet;
 	//openlist
 	Node_List m_openList;
 	//closelist
 	Node_List m_closeList;
+	//waypath
+	std::vector<Node*> m_FoundPath;
+	int m_FoundPathSize;
 
 	//source
 	Node* m_SourceNode;
@@ -119,6 +134,9 @@ private:
 
 	//has began
 	CC_SYNTHESIZE(int, m_hasBegan, HasBegan);
+
+	//display step
+	CC_SYNTHESIZE(bool, m_DisplayStep, DisplayStep);
 
 };
 #endif

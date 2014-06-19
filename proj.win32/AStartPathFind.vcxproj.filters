@@ -35,5 +35,9 @@
     <ClInclude Include="..\Classes\Node.h">
       <Filter>Classes</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
 </Project>
