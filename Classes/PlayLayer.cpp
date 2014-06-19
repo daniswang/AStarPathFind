@@ -216,6 +216,7 @@ bool PlayLayer::ccTouchBegan(CCTouch *touch, CCEvent *unused)
 					frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(stepRes[STEP_BASE]);
 					(*it)->setDisplayFrame(frame);
 					(*it)->removeAllChildren();
+					(*it)->setPFatherNode(NULL);
 				}
 				m_openList.clear();
 
@@ -226,10 +227,22 @@ bool PlayLayer::ccTouchBegan(CCTouch *touch, CCEvent *unused)
 					frame = CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(stepRes[STEP_BASE]);
 					(*its)->setDisplayFrame(frame);
 					(*its)->removeAllChildren();
+					(*its)->setPFatherNode(NULL);
 				}
 				m_closeList.clear();
 
-				m_FoundPath.clear();
+				for(int i = 0;i < m_height;i ++)
+				{
+					for(int l = 0;l < m_width;l ++)
+					{
+						if((*(m_matrix + i * m_width + l))->getNodeType() == NODE_WALL)
+						{
+							(*(m_matrix + i * m_width + l))->removeAllChildren();
+							(*(m_matrix + i * m_width + l))->setNodeType(NODE_NORMAL);
+						}
+					}
+				}
+				//m_FoundPath.clear();
 
 				m_SourceNode = NULL;
 				m_DesNode = NULL;
@@ -493,34 +506,38 @@ bool PlayLayer::AddNeighbor2Openlist(Node* p_node)
 {
 	if(!p_node)
 		return false;
-	bool desInOpen = false;
+
 	//right
 	Node* neighborRight = NodeOfIndex(p_node->getRow(), p_node->getCol() + 1);
 	if(CheckAddNeighborNode(neighborRight, p_node, DIR_RIGHT))
 	{
 		ComputeNodeGH(neighborRight, p_node, DIR_RIGHT);
-		desInOpen = Add2OpenList(neighborRight, DIR_RIGHT);
+		if(Add2OpenList(neighborRight, DIR_RIGHT))
+			return true;
 	}
 	//left
 	Node* neighborLeft = NodeOfIndex(p_node->getRow(), p_node->getCol() - 1);
 	if(CheckAddNeighborNode(neighborLeft, p_node, DIR_LEFT))
 	{
 		ComputeNodeGH(neighborLeft, p_node, DIR_LEFT);
-		desInOpen = Add2OpenList(neighborLeft, DIR_LEFT);
+		if(Add2OpenList(neighborLeft, DIR_LEFT))
+			return true;
 	}
 	//up
 	Node* neighborUp = NodeOfIndex(p_node->getRow() + 1, p_node->getCol());
 	if(CheckAddNeighborNode(neighborUp, p_node, DIR_UP))
 	{
 		ComputeNodeGH(neighborUp, p_node, DIR_UP);
-		desInOpen = Add2OpenList(neighborUp, DIR_UP);
+		if(Add2OpenList(neighborUp, DIR_UP))
+			return true;
 	}
 	//down
 	Node* neighborDown = NodeOfIndex(p_node->getRow() - 1, p_node->getCol());
 	if(CheckAddNeighborNode(neighborDown, p_node, DIR_DOWN))
 	{
 		ComputeNodeGH(neighborDown, p_node, DIR_DOWN);
-		desInOpen = Add2OpenList(neighborDown, DIR_DOWN);
+		if(Add2OpenList(neighborDown, DIR_DOWN))
+			return true;
 	}
 
 	//right up
@@ -528,31 +545,35 @@ bool PlayLayer::AddNeighbor2Openlist(Node* p_node)
 	if(CheckAddNeighborNode(neighborRightUp, p_node, DIR_RIGHT_UP))
 	{
 		ComputeNodeGH(neighborRightUp, p_node, DIR_RIGHT_UP);
-		desInOpen = Add2OpenList(neighborRightUp, DIR_RIGHT_UP);
+		if(Add2OpenList(neighborRightUp, DIR_RIGHT_UP))
+			return true;
 	}
 	//left up
 	Node* neighborLeftUp = NodeOfIndex(p_node->getRow() + 1, p_node->getCol() - 1);
 	if(CheckAddNeighborNode(neighborLeftUp, p_node, DIR_LEFT_UP))
 	{
 		ComputeNodeGH(neighborLeftUp, p_node, DIR_LEFT_UP);
-		desInOpen = Add2OpenList(neighborLeftUp, DIR_LEFT_UP);
+		if(Add2OpenList(neighborLeftUp, DIR_LEFT_UP))
+			return true;
 	}
 	//right down
 	Node* neighborRightDown = NodeOfIndex(p_node->getRow() - 1, p_node->getCol() + 1);
 	if(CheckAddNeighborNode(neighborRightDown, p_node, DIR_RIGHT_DOWN))
 	{
 		ComputeNodeGH(neighborRightDown, p_node, DIR_RIGHT_DOWN);
-		desInOpen = Add2OpenList(neighborRightDown, DIR_RIGHT_DOWN);
+		if(Add2OpenList(neighborRightDown, DIR_RIGHT_DOWN))
+			return true;
 	}
 	//left down
 	Node* neighborLeftDown = NodeOfIndex(p_node->getRow() - 1, p_node->getCol() - 1);
 	if(CheckAddNeighborNode(neighborLeftDown, p_node, DIR_LEFT_DOWN))
 	{
 		ComputeNodeGH(neighborLeftDown, p_node, DIR_LEFT_DOWN);
-		desInOpen = Add2OpenList(neighborLeftDown, DIR_LEFT_DOWN);
+		if( Add2OpenList(neighborLeftDown, DIR_LEFT_DOWN))
+			return true;
 	}
 
-	return desInOpen;
+	return false;
 }
 
 void PlayLayer::ComputeNodeGH(Node* pNode, Node* pFather, Direction_Int dir)
