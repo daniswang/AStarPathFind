@@ -243,7 +243,7 @@ bool PlayLayer::ccTouchBegan(CCTouch *touch, CCEvent *unused)
 					}
 				}
 				//m_FoundPath.clear();
-
+				m_DesNode->removeAllChildren();
 				m_SourceNode = NULL;
 				m_DesNode = NULL;
 				setHasBegan(FIND_NOT_START);
